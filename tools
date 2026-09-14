@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$ROOT_DIR/lib/common.sh"
+
+case "${1:-list}" in
+  list)
+    discover_tools
+    ;;
+  install)
+    "$ROOT_DIR/install.sh"
+    ;;
+  uninstall)
+    "$ROOT_DIR/uninstall.sh"
+    ;;
+  run)
+    [[ -n "${2:-}" ]] || die "Usage: ./tools run <tool-name>"
+    run_tool "$2"
+    ;;
+  *)
+    echo "Usage: ./tools {list|install|uninstall|run <tool-name>}"
+    exit 1
+    ;;
+esac

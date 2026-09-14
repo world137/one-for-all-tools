@@ -1,0 +1,5 @@
+name: unique-lines
+type: shell
+description: Example unique-lines shell tool
+version: 1.0.0
+command: unique-lines

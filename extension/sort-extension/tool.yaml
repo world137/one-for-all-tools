@@ -1,0 +1,5 @@
+name: sort-extension
+type: extension
+description: Example VS Code extension
+version: 1.0.0
+extension_id: yourpublisher.sort-extension

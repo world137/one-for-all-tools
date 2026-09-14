@@ -1,0 +1,5 @@
+name: unique-extension
+type: extension
+description: Example unique extension
+version: 1.0.0
+extension_id: yourpublisher.unique-extension

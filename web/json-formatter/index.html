@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>JSON Formatter</title></head>
+<body>
+<h1>JSON Formatter</h1>
+<textarea id="input" rows="15" cols="80">{ "hello": "world" }</textarea>
+<br><button onclick="format()">Format</button>
+<pre id="output"></pre>
+<script>
+function format() {
+  try {
+    const value = JSON.parse(document.getElementById('input').value);
+    document.getElementById('output').textContent = JSON.stringify(value, null, 2);
+  } catch (e) {
+    document.getElementById('output').textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>

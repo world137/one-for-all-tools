@@ -1,0 +1,5 @@
+name: json-formatter
+type: web
+description: Example JSON formatter
+version: 1.0.0
+port: 8081
