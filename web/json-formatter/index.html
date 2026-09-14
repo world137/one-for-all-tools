@@ -1,20 +1,110 @@
 <!doctype html>
-<html>
-<head><meta charset="utf-8"><title>JSON Formatter</title></head>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON Formatter</title>
+  <link rel="stylesheet" href="../_shared/styles.css" />
+</head>
+
 <body>
-<h1>JSON Formatter</h1>
-<textarea id="input" rows="15" cols="80">{ "hello": "world" }</textarea>
-<br><button onclick="format()">Format</button>
-<pre id="output"></pre>
-<script>
-function format() {
-  try {
-    const value = JSON.parse(document.getElementById('input').value);
-    document.getElementById('output').textContent = JSON.stringify(value, null, 2);
-  } catch (e) {
-    document.getElementById('output').textContent = e.message;
-  }
-}
-</script>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">dev-tools</div>
+        <div class="tool-name">JSON Formatter</div>
+      </div>
+    </header>
+
+    <main class="container">
+      <header class="page-header">
+        <h1>JSON Formatter</h1>
+        <p>Format, validate, and inspect JSON with a clean, minimal workflow.</p>
+      </header>
+
+      <section class="tool-panel">
+        <div class="editor-grid">
+          <div class="editor-block">
+            <label class="field-label" for="input">Input</label>
+            <textarea id="input" class="textarea" spellcheck="false">{
+  "hello": "world",
+  "items": [1, 2, 3],
+  "active": true
+}</textarea>
+          </div>
+
+          <div class="editor-block">
+            <label class="field-label" for="output">Output</label>
+            <pre id="output" class="output-box" aria-live="polite">{}</pre>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" type="button" id="format-btn">Format</button>
+          <button class="secondary" type="button" id="copy-btn">Copy</button>
+          <button class="secondary" type="button" id="clear-btn">Clear</button>
+        </div>
+
+        <div id="status" class="status" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function setStatus(message, type = '') {
+      status.textContent = message;
+      status.className = 'status';
+      if (type) {
+        status.classList.add(type);
+      }
+    }
+
+    function format() {
+      try {
+        const value = JSON.parse(input.value);
+        output.textContent = JSON.stringify(value, null, 2);
+        setStatus('JSON formatted successfully.', 'success');
+      } catch (error) {
+        output.textContent = error.message;
+        setStatus('Invalid JSON. Fix the input and try again.', 'error');
+      }
+    }
+
+    function copyOutput() {
+      const text = output.textContent.trim();
+      if (!text) {
+        setStatus('There is no output to copy yet.', 'error');
+        return;
+      }
+
+      navigator.clipboard.writeText(text)
+        .then(() => setStatus('Copied to clipboard.', 'success'))
+        .catch(() => setStatus('Clipboard access failed. Please copy manually.', 'error'));
+    }
+
+    function clearAll() {
+      input.value = '';
+      output.textContent = '';
+      setStatus('Input cleared.', '');
+    }
+
+    document.getElementById('format-btn').addEventListener('click', format);
+    document.getElementById('copy-btn').addEventListener('click', copyOutput);
+    document.getElementById('clear-btn').addEventListener('click', clearAll);
+
+    input.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        format();
+      }
+    });
+
+    format();
+  </script>
 </body>
+
 </html>

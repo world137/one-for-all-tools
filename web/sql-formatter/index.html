@@ -1,9 +1,322 @@
 <!doctype html>
-<html>
-<head><meta charset="utf-8"><title>SQL Formatter</title></head>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL Formatter</title>
+    <link rel="stylesheet" href="../_shared/styles.css" />
+</head>
+
 <body>
-<h1>SQL Formatter</h1>
-<textarea rows="15" cols="80">select * from users where id = 1;</textarea>
-<p>Example placeholder web tool.</p>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand">dev-tools</div>
+                <div class="tool-name">SQL Formatter</div>
+            </div>
+        </header>
+
+        <main class="container">
+            <header class="page-header">
+                <h1>SQL Formatter</h1>
+                <p>Clean up SQL statements and make them easier to read across large queries.</p>
+            </header>
+
+            <section class="tool-panel">
+                <div class="editor-grid">
+                    <div class="editor-block">
+                        <label class="field-label" for="input">Input</label>
+                        <textarea id="input" class="textarea"
+                            spellcheck="false">SELECT * FROM users u JOIN orders o ON u.id = o.user_id WHERE u.active = 1 AND o.total > 100 ORDER BY o.created_at DESC LIMIT 10;</textarea>
+                    </div>
+
+                    <div class="editor-block">
+                        <label class="field-label" for="output">Output</label>
+                        <pre id="output" class="output-box" aria-live="polite"></pre>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="primary" type="button" id="format-btn">Format</button>
+                    <button class="secondary" type="button" id="check-btn">Check Syntax</button>
+                    <button class="secondary" type="button" id="copy-btn">Copy</button>
+                    <button class="secondary" type="button" id="clear-btn">Clear</button>
+                </div>
+
+                <div id="status" class="status" aria-live="polite"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script>
+        const input = document.getElementById('input');
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        let sqlDb = null;
+
+        function setStatus(message, type = '') {
+            status.textContent = message;
+            status.className = 'status';
+            if (type) {
+                status.classList.add(type);
+            }
+        }
+
+        async function initDatabase() {
+            if (sqlDb) {
+                return sqlDb;
+            }
+
+            const SQL = await window.initSqlJs({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+            });
+
+            sqlDb = new SQL.Database();
+            return sqlDb;
+        }
+
+        function formatSQL(sql) {
+            const keywordOrder = [
+                'SELECT', 'FROM', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN',
+                'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT', 'OFFSET', 'UNION', 'UNION ALL'
+            ];
+
+            let normalized = sql.trim();
+            normalized = normalized.replace(/\s+/g, ' ');
+            normalized = normalized.replace(/\s*,\s*/g, ', ');
+            normalized = normalized.replace(/\s*\(\s*/g, ' (');
+            normalized = normalized.replace(/\s*\)\s*/g, ') ');
+            normalized = normalized.replace(/\s*;\s*$/g, '');
+
+            let formatted = normalized;
+            keywordOrder.forEach((keyword) => {
+                const pattern = new RegExp(`\\s(${keyword})\\s`, 'gi');
+                formatted = formatted.replace(pattern, `\n${keyword} `);
+            });
+
+            formatted = formatted
+                .replace(/\s*\n\s*/g, '\n')
+                .replace(/\s+,/g, ',')
+                .replace(/\s*\(\s*/g, ' (')
+                .replace(/\s*\)\s*/g, ') ')
+                .replace(/\nSELECT\s+/i, 'SELECT ')
+                .replace(/\nFROM\s+/i, '\nFROM ')
+                .replace(/\nWHERE\s+/i, '\nWHERE ')
+                .replace(/\nORDER BY\s+/i, '\nORDER BY ')
+                .replace(/\nLIMIT\s+/i, '\nLIMIT ')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+
+            return formatted + ';';
+        }
+
+        function format() {
+            const sql = input.value.trim();
+            if (!sql) {
+                output.textContent = '';
+                setStatus('Enter a SQL statement to format it.', 'error');
+                return;
+            }
+
+            output.textContent = formatSQL(sql);
+            setStatus('SQL formatted successfully.', 'success');
+        }
+
+        function formatResultTable(rows, columns) {
+            if (!rows.length) {
+                return 'Query executed successfully. No rows returned.';
+            }
+
+            const header = columns.map((column) => String(column));
+            const body = rows.map((row) => columns.map((column) => {
+                const value = row[column];
+                return value === null || value === undefined ? 'NULL' : String(value);
+            }));
+
+            const widths = header.map((cell, index) => Math.max(cell.length, ...body.map((row) => String(row[index]).length)));
+
+            const formatRow = (values) => `| ${values.map((value, index) => String(value).padEnd(widths[index], ' ')).join(' | ')} |`;
+            const divider = `| ${widths.map((width) => '-'.repeat(width)).join(' | ')} |`;
+
+            return [formatRow(header), divider, ...body.map(formatRow)].join('\n');
+        }
+
+        function validateSQLSyntax(sql) {
+            const trimmed = sql.trim();
+            if (!trimmed) {
+                throw new Error('SQL is empty.');
+            }
+
+            const withoutComments = trimmed
+                .replace(/--.*$/gm, '')
+                .replace(/\/\*[\s\S]*?\*\//g, '');
+
+            if (!withoutComments) {
+                throw new Error('SQL is empty.');
+            }
+
+            const stack = [];
+            let inSingleQuote = false;
+            let inDoubleQuote = false;
+
+            for (let i = 0; i < withoutComments.length; i += 1) {
+                const char = withoutComments[i];
+                const next = withoutComments[i + 1];
+
+                if (inSingleQuote) {
+                    if (char === "'" && next === "'") {
+                        i += 1;
+                        continue;
+                    }
+                    if (char === "'") {
+                        inSingleQuote = false;
+                    }
+                    continue;
+                }
+
+                if (inDoubleQuote) {
+                    if (char === '"' && next === '"') {
+                        i += 1;
+                        continue;
+                    }
+                    if (char === '"') {
+                        inDoubleQuote = false;
+                    }
+                    continue;
+                }
+
+                if (char === "'") {
+                    inSingleQuote = true;
+                    continue;
+                }
+
+                if (char === '"') {
+                    inDoubleQuote = true;
+                    continue;
+                }
+
+                if (char === '(' || char === '[') {
+                    stack.push(char);
+                    continue;
+                }
+
+                if (char === ')' || char === ']') {
+                    const pair = char === ')' ? '(' : '[';
+                    if (!stack.length || stack[stack.length - 1] !== pair) {
+                        throw new Error(`Unmatched closing bracket: ${char}`);
+                    }
+                    stack.pop();
+                }
+            }
+
+            if (inSingleQuote || inDoubleQuote) {
+                throw new Error('Unterminated string literal.');
+            }
+
+            if (stack.length) {
+                throw new Error('Unclosed bracket in SQL statement.');
+            }
+
+            const lastNonSemicolon = withoutComments.replace(/;\s*$/, '').trim();
+            if (!lastNonSemicolon) {
+                throw new Error('SQL is empty.');
+            }
+
+            const queryType = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|WITH|REPLACE|TRUNCATE|MERGE|GRANT|REVOKE)\b/i;
+            if (!queryType.test(lastNonSemicolon)) {
+                throw new Error('Unsupported or incomplete SQL statement.');
+            }
+
+            return true;
+        }
+
+        async function checkSyntax() {
+            const sql = input.value.trim();
+            if (!sql) {
+                output.textContent = '';
+                setStatus('Enter a SQL statement to validate.', 'error');
+                return;
+            }
+
+            try {
+                validateSQLSyntax(sql);
+                output.textContent = 'SQL syntax looks valid. This check does not verify table or column existence.';
+                setStatus('SQL syntax is valid.', 'success');
+            } catch (error) {
+                output.textContent = `Syntax error: ${error.message}`;
+                setStatus('SQL syntax error found.', 'error');
+            }
+        }
+
+        async function runQuery() {
+            const sql = input.value.trim();
+            if (!sql) {
+                output.textContent = '';
+                setStatus('Enter a SQL statement to run.', 'error');
+                return;
+            }
+
+            try {
+                const db = await initDatabase();
+                const statement = db.prepare(sql);
+                const columnNames = statement.getColumnNames();
+                const rows = [];
+
+                while (statement.step()) {
+                    rows.push(statement.getAsObject());
+                }
+
+                statement.free();
+
+                if (columnNames.length && rows.length) {
+                    output.textContent = formatResultTable(rows, columnNames);
+                } else if (columnNames.length) {
+                    output.textContent = 'Query executed successfully. No rows returned.';
+                } else {
+                    output.textContent = `Query executed successfully. ${rows.length} row(s) affected.`;
+                }
+
+                setStatus('Query ran successfully.', 'success');
+            } catch (error) {
+                output.textContent = `Execution error: ${error.message}`;
+                setStatus('Query execution failed.', 'error');
+            }
+        }
+
+        function copyOutput() {
+            const text = output.textContent.trim();
+            if (!text) {
+                setStatus('There is no SQL output to copy yet.', 'error');
+                return;
+            }
+
+            navigator.clipboard.writeText(text)
+                .then(() => setStatus('Copied to clipboard.', 'success'))
+                .catch(() => setStatus('Clipboard access failed. Please copy manually.', 'error'));
+        }
+
+        function clearAll() {
+            input.value = '';
+            output.textContent = '';
+            setStatus('Input cleared.', '');
+        }
+
+        document.getElementById('format-btn').addEventListener('click', format);
+        document.getElementById('check-btn').addEventListener('click', checkSyntax);
+        document.getElementById('run-btn').addEventListener('click', runQuery);
+        document.getElementById('copy-btn').addEventListener('click', copyOutput);
+        document.getElementById('clear-btn').addEventListener('click', clearAll);
+
+        input.addEventListener('keydown', (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                format();
+            }
+        });
+
+        format();
+    </script>
 </body>
+
 </html>
