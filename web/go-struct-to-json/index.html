@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Struct → JSON Mock Generator V3</title>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 32px
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px
+        }
+
+        .description {
+            color: #666;
+            margin-bottom: 24px
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+            flex-wrap: wrap
+        }
+
+        .control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555
+        }
+
+        input,
+        select {
+            height: 42px;
+            padding: 0 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 260px
+        }
+
+        button {
+            height: 42px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .generate {
+            background: #007aff;
+            color: white
+        }
+
+        .copy {
+            background: #34c759;
+            color: white
+        }
+
+        .clear {
+            background: #e5e5ea;
+            color: #1d1d1f
+        }
+
+        .editor {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #ddd
+        }
+
+        .panel-header {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600
+        }
+
+        textarea {
+            width: 100%;
+            height: 650px;
+            border: 0;
+            outline: none;
+            resize: vertical;
+            padding: 16px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.6
+        }
+
+        pre {
+            margin: 0;
+            padding: 16px;
+            height: 650px;
+            overflow: auto;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word
+        }
+
+        .error {
+            color: #ff3b30;
+            padding: 16px;
+            white-space: pre-wrap
+        }
+
+        .status {
+            font-size: 13px;
+            color: #666;
+            margin-left: auto
+        }
+
+        .help {
+            margin-top: 14px;
+            color: #777;
+            font-size: 12px
+        }
+
+        .docs {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            padding: 4px 20px 20px
+        }
+
+        .docs summary {
+            cursor: pointer;
+            font-weight: 600;
+            padding: 14px 0;
+            list-style: none;
+            outline: none;
+        }
+
+        .docs summary::-webkit-details-marker {
+            display: none
+        }
+
+        .docs summary:before {
+            content: "▸ ";
+            color: #007aff;
+        }
+
+        .docs[open] summary:before {
+            content: "▾ ";
+        }
+
+        .docs h3 {
+            font-size: 15px;
+            margin: 20px 0 8px
+        }
+
+        .docs h3:first-of-type {
+            margin-top: 4px
+        }
+
+        .docs p,
+        .docs li {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6
+        }
+
+        .docs ul {
+            margin: 6px 0;
+            padding-left: 20px
+        }
+
+        .docs code {
+            background: #f0f0f2;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px
+        }
+
+        .docs pre {
+            height: auto;
+            max-height: 320px;
+            background: #f6f6f8;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            font-size: 12px;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 8px 0
+        }
+
+        .example-grid>div>.label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 6px;
+            display: block
+        }
+
+        .load-example-btn {
+            height: 32px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            background: #eef4ff;
+            color: #007aff;
+            margin-top: 6px
+        }
+
+        @media(max-width:700px) {
+            .example-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        @media(max-width:900px) {
+            .editor {
+                grid-template-columns: 1fr
+            }
+
+            .container {
+                padding: 16px
+            }
+
+            .status {
+                width: 100%;
+                margin-left: 0
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Go Struct → JSON Mock Generator</h1>
+        <div class="description">
+            Paste your Go structs, select the root struct, and generate a Postman-ready JSON request body. Supports
+            structs with or without the `type` keyword, plain Go types (<code>int</code>, <code>string</code>,
+            <code>bool</code>, ...), and <code>null.X</code> wrapper types side by side.
+        </div>
+
+        <details class="docs">
+            <summary>Documentation &amp; Example (V3)</summary>
+
+            <h3>New in V3</h3>
+            <ul>
+                <li><strong>Root Struct selector</strong> — paste multiple structs and choose which one is the root.
+                </li>
+                <li><strong>JSON Pretty button</strong> — formats the generated JSON with 4-space indentation.</li>
+                <li><strong>Structs without <code>type</code></strong> — parses both <code>type HelloWorld struct
+                        {...}</code> and <code>HelloWorld struct {...}</code>, useful when copying from generated
+                    docs or snippets.</li>
+                <li><strong>Plain Go types</strong> — native types like <code>int</code>, <code>string</code>,
+                    <code>bool</code>, <code>float64</code>, <code>byte</code>, <code>rune</code> are mocked the same
+                    way as their <code>null.X</code> equivalents.
+                </li>
+            </ul>
+
+            <h3>Example</h3>
+            <p>Input:</p>
+            <pre><code>HelloWorld struct {
+    Body ExampleBody `json:"example_body"`
+}
+
+ExampleBody struct {
+    Test         null.Int64  `json:"test"`
+    Apple        null.String `json:"apple"`
+}</code></pre>
+            <div class="example-grid">
+                <div>
+                    <span class="label">Root Struct</span>HelloWorld
+                </div>
+                <div>
+                    <span class="label">Root JSON Key</span>rq_body
+                </div>
+            </div>
+            <p>Output:</p>
+            <pre><code>{
+    "rq_body": {
+        "example_body": {
+            "test": -1,
+            "apple": "mock-string"
+        }
+    }
+}</code></pre>
+            <button type="button" class="load-example-btn" onclick="loadExample()">Load this example into the
+                editor</button>
+
+            <h3>Buttons</h3>
+            <ul>
+                <li><code>Generate JSON</code> — generate JSON from the selected root struct.</li>
+                <li><code>JSON Pretty</code> — format the generated JSON with indentation.</li>
+                <li><code>Copy JSON</code> — copy JSON to clipboard.</li>
+                <li><code>Clear</code> — clear the input and output.</li>
+            </ul>
+
+            <h3>Supported</h3>
+            <ul>
+                <li>Go primitive types: <code>string</code>, <code>bool</code>, <code>int</code>/<code>int8-64</code>,
+                    <code>uint</code>/<code>uint8-64</code>, <code>byte</code>, <code>rune</code>,
+                    <code>float32</code>/<code>float64</code>
+                </li>
+                <li><code>json</code> struct tags, nested structs, structs with or without <code>type</code></li>
+                <li>Pointers, slices, arrays, maps</li>
+                <li><code>null.Int64</code>, <code>null.Int32</code>, <code>null.String</code>,
+                    <code>null.Dec2</code>, <code>null.Date</code>, <code>time.Time</code>
+                </li>
+                <li>Custom <code>mock:"..."</code> values</li>
+            </ul>
+
+            <h3>Custom mock values</h3>
+            <p>Example:</p>
+            <pre><code>HelloWorld struct {
+    Test    string `json:"test" mock:"text"`
+    Apple   string `json:"apple" mock:"-200000"`
+}</code></pre>
+            <p>Output:</p>
+            <pre><code>{
+    "test": "text",
+    "apple": -200000
+}</code></pre>
+
+            <h3>Important</h3>
+            <p>If two structs have exactly the same name in the pasted input, the later definition replaces the
+                earlier one. In real Go code, duplicate type names are not allowed in the same package. For types
+                with the same name from different packages, package-aware resolution would be needed.</p>
+        </details>
+
+        <div class="toolbar">
+            <div class="control">
+                <label>Root Struct</label>
+                <select id="rootStruct">
+                    <option value="">Auto detect...</option>
+                </select>
+            </div>
+
+            <div class="control">
+                <label>Root JSON Key</label>
+                <input id="rootKey" type="text" value="rq_body" placeholder="e.g. adjustment_request_body">
+            </div>
+
+            <button class="generate" onclick="generateJSON()">Generate JSON</button>
+            <button class="generate" onclick="prettyJSON()">JSON Pretty</button>
+            <button class="copy" onclick="copyJSON()">Copy JSON</button>
+            <button class="clear" onclick="clearAll()">Clear</button>
+            <span id="status" class="status"></span>
+        </div>
+
+        <div class="editor">
+            <div class="panel">
+                <div class="panel-header"><span>Go Struct</span><span>Input</span></div>
+                <textarea id="goCode">HelloWorld struct {
+    Body ExampleBody `json:"example_body"`
+}
+
+ExampleBody struct {
+    Test         null.Int64  `json:"test"`
+    Apple        null.String `json:"apple"`
+}</textarea>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><span>JSON Output</span><span>Postman Body</span></div>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedJSON = "";
+
+        function parseStructs(code) {
+            const structs = {};
+
+            // Remove block comments and line comments.
+            code = code.replace(/\/\*[\s\S]*?\*\//g, "");
+            code = code.replace(/\/\/.*$/gm, "");
+
+            /*
+                Supports both:
+        
+                type ReversePrindRequest struct {
+                    Body ReversePrindRequestBody `json:"rq_body"`
+                }
+        
+                and:
+        
+                ReversePrindRequest struct {
+                    Body ReversePrindRequestBody `json:"rq_body"`
+                }
+            */
+
+            const structRegex =
+                /(?:\btype\s+)?([A-Za-z_]\w*)\s+struct\s*\{/g;
+
+            let match;
+
+            while ((match = structRegex.exec(code)) !== null) {
+                const structName = match[1];
+
+                const openBraceIndex =
+                    code.indexOf("{", match.index);
+
+                const bodyEnd =
+                    findMatchingBrace(
+                        code,
+                        openBraceIndex
+                    );
+
+                if (bodyEnd === -1) {
+                    continue;
+                }
+
+                const body =
+                    code.substring(
+                        openBraceIndex + 1,
+                        bodyEnd
+                    );
+
+                structs[structName] =
+                    parseFields(body);
+
+                structRegex.lastIndex =
+                    bodyEnd + 1;
+            }
+
+            return structs;
+        }
+
+        function findMatchingBrace(text, openBraceIndex) {
+            let depth = 0;
+            let inString = false;
+            let quote = "";
+            let escaped = false;
+
+            for (let i = openBraceIndex; i < text.length; i++) {
+                const ch = text[i];
+
+                if (inString) {
+                    if (escaped) {
+                        escaped = false;
+                        continue;
+                    }
+                    if (ch === "\\") {
+                        escaped = true;
+                        continue;
+                    }
+                    if (ch === quote) {
+                        inString = false;
+                    }
+                    continue;
+                }
+
+                if (ch === '"' || ch === '`') {
+                    inString = true;
+                    quote = ch;
+                    continue;
+                }
+
+                if (ch === "{") depth++;
+                if (ch === "}") {
+                    depth--;
+                    if (depth === 0) return i;
+                }
+            }
+
+            return -1;
+        }
+
+        function parseFields(body) {
+            const fields = [];
+            const lines = body.split("\n");
+
+            for (let line of lines) {
+                line = line.trim();
+
+                if (!line || line.startsWith("//")) continue;
+
+                const match = line.match(/^(\w+)\s+([^\s`]+)(?:\s+`([^`]*)`)?/);
+                if (!match) continue;
+
+                const fieldName = match[1];
+                const fieldType = match[2];
+                const structTag = match[3] || "";
+
+                const jsonName = getJSONName(structTag);
+
+                if (jsonName === "-") continue;
+
+                fields.push({
+                    fieldName,
+                    fieldType,
+                    jsonName: jsonName || fieldName,
+                    structTag
+                });
+            }
+
+            return fields;
+        }
+
+        function getJSONName(tag) {
+            if (!tag) return "";
+
+            const match = tag.match(/(?:^|\s)json:"([^"]*)"/);
+            if (!match) return "";
+
+            return match[1].split(",")[0];
+        }
+
+        function getMockValueFromTag(tag) {
+            const match = tag.match(/(?:^|\s)mock:"([^"]*)"/);
+            return match ? match[1] : null;
+        }
+
+        function generateValue(type, structs, visited = new Set(), tag = "") {
+            const customMock = getMockValueFromTag(tag);
+
+            if (customMock !== null) {
+                if (customMock === "true") return true;
+                if (customMock === "false") return false;
+                if (customMock === "null") return null;
+                if (customMock !== "" && !isNaN(Number(customMock))) return Number(customMock);
+                return customMock;
+            }
+
+            if (type.startsWith("*")) {
+                return generateValue(type.substring(1), structs, visited, tag);
+            }
+
+            if (type.startsWith("[]")) {
+                return [generateValue(type.substring(2), structs, visited)];
+            }
+
+            const arrayMatch = type.match(/^\[(\d+)\](.+)$/);
+            if (arrayMatch) {
+                const count = Math.min(parseInt(arrayMatch[1], 10), 3);
+                const elementType = arrayMatch[2];
+                return Array.from({ length: count }, () =>
+                    generateValue(elementType, structs, visited)
+                );
+            }
+
+            if (type.startsWith("map[")) {
+                const valueType = type.replace(/^map\[[^\]]+\]/, "");
+                return {
+                    "key": generateValue(valueType, structs, visited)
+                };
+            }
+
+            if (type === "interface{}" || type === "any" || type === "error") {
+                return null;
+            }
+
+            // Unified primitive/native type table. Works for both:
+            //  - plain Go types:   string, int, int64, bool, float64, ...
+            //  - null.X wrapper types: null.String, null.Int64, null.Dec2, ...
+            // by matching on the lowercased type name after stripping any
+            // package/wrapper prefix (e.g. "null.Int64" -> "int64").
+            const typeName = type.split(".").pop();
+            const key = typeName.toLowerCase();
+
+            const primitiveValues = {
+                // signed integers
+                int: -1, int8: -1, int16: -1, int32: -1, int64: -1, rune: -1,
+                // unsigned integers
+                uint: 1, uint8: 1, byte: 1, uint16: 1, uint32: 1, uint64: 1, uintptr: 1,
+                // floating point / decimal
+                float32: -200000, float64: -200000, dec2: -200000,
+                // string
+                string: "mock-string",
+                // bool
+                bool: true,
+                // date / time
+                date: "2026-07-31",
+                time: "2026-07-31T00:00:00Z",
+                duration: 0,
+                // complex numbers (rare, mocked as 0)
+                complex64: 0, complex128: 0
+            };
+
+            if (Object.prototype.hasOwnProperty.call(primitiveValues, key)) {
+                return primitiveValues[key];
+            }
+
+            if (structs[type]) {
+                if (visited.has(type)) return {};
+
+                const newVisited = new Set(visited);
+                newVisited.add(type);
+
+                return generateStruct(type, structs, newVisited);
+            }
+
+            return "mock-value";
+        }
+
+        function generateStruct(structName, structs, visited = new Set()) {
+            const fields = structs[structName];
+
+            if (!fields) return {};
+
+            const result = {};
+
+            for (const field of fields) {
+                result[field.jsonName] = generateValue(
+                    field.fieldType,
+                    structs,
+                    visited,
+                    field.structTag
+                );
+            }
+
+            return result;
+        }
+
+        function updateRootStructOptions() {
+            const code = document.getElementById("goCode").value;
+            const structs = parseStructs(code);
+            const select = document.getElementById("rootStruct");
+            const current = select.value;
+
+            select.innerHTML = "";
+
+            const names = Object.keys(structs);
+
+            for (const name of names) {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            }
+
+            if (current && structs[current]) {
+                select.value = current;
+            } else if (structs["AdjustmentRequestBody"]) {
+                select.value = "AdjustmentRequestBody";
+            } else if (names.length > 0) {
+                select.value = names[0];
+            }
+
+            return structs;
+        }
+
+        function generateJSON() {
+            const code = document.getElementById("goCode").value;
+            const rootKey = document.getElementById("rootKey").value.trim();
+            const output = document.getElementById("output");
+            const status = document.getElementById("status");
+
+            try {
+                const structs = updateRootStructOptions();
+                const rootStruct = document.getElementById("rootStruct").value;
+
+                if (!rootStruct) {
+                    throw new Error("No root struct selected.");
+                }
+
+                if (!structs[rootStruct]) {
+                    throw new Error("Root struct not found: " + rootStruct);
+                }
+
+                const result = generateStruct(rootStruct, structs);
+
+                const finalResult = rootKey
+                    ? { [rootKey]: result }
+                    : result;
+
+                generatedJSON = JSON.stringify(finalResult, null, 4);
+
+                output.textContent = generatedJSON;
+                status.textContent = "Generated from: " + rootStruct;
+            } catch (error) {
+                generatedJSON = "";
+                output.textContent = "";
+                output.innerHTML =
+                    '<div class="error">' +
+                    escapeHTML(error.message) +
+                    '</div>';
+                status.textContent = "Error";
+            }
+        }
+
+
+        function prettyJSON() {
+            const output =
+                document.getElementById("output");
+
+            const status =
+                document.getElementById("status");
+
+            try {
+                let text = generatedJSON;
+
+                if (!text) {
+                    text = output.textContent.trim();
+                }
+
+                if (!text) {
+                    generateJSON();
+                    text = generatedJSON;
+                }
+
+                if (!text) {
+                    return;
+                }
+
+                const parsed =
+                    JSON.parse(text);
+
+                generatedJSON =
+                    JSON.stringify(
+                        parsed,
+                        null,
+                        4
+                    );
+
+                output.textContent =
+                    generatedJSON;
+
+                status.textContent =
+                    "JSON formatted!";
+            } catch (error) {
+                status.textContent =
+                    "Invalid JSON";
+            }
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 2000);
+        }
+
+        async function copyJSON() {
+            if (!generatedJSON) generateJSON();
+            if (!generatedJSON) return;
+
+            try {
+                await navigator.clipboard.writeText(generatedJSON);
+            } catch (e) {
+                const textarea = document.createElement("textarea");
+                textarea.value = generatedJSON;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                textarea.remove();
+            }
+
+            const status = document.getElementById("status");
+            status.textContent = "Copied to clipboard!";
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 2000);
+        }
+
+        function loadExample() {
+            const exampleCode = `HelloWorld struct {
+    Body ExampleBody \`json:"example_body"\`
+}
+
+ExampleBody struct {
+    Test         null.Int64  \`json:"test"\`
+    Apple        null.String \`json:"apple"\`
+}`;
+
+            document.getElementById("goCode").value = exampleCode;
+            document.getElementById("rootKey").value = "rq_body";
+            updateRootStructOptions();
+            document.getElementById("rootStruct").value = "HelloWorld";
+            generateJSON();
+        }
+
+        function clearAll() {
+            document.getElementById("goCode").value = "";
+            document.getElementById("rootStruct").innerHTML = "";
+            document.getElementById("output").textContent = "";
+            document.getElementById("status").textContent = "";
+            generatedJSON = "";
+        }
+
+        function escapeHTML(value) {
+            return value
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        document.getElementById("goCode").addEventListener("input", () => {
+            updateRootStructOptions();
+        });
+
+        updateRootStructOptions();
+        generateJSON();
+    </script>
+</body>
+
+</html>
