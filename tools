@@ -1,15 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the real path of this script, following symlinks, so ROOT_DIR
+# still points at the project directory when `tools` is invoked via a
+# symlink on PATH (see `./tools link`).
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ROOT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
 source "$ROOT_DIR/lib/common.sh"
 
 case "${1:-list}" in
   list)
+    list_installed_tools
+    ;;
+  list-all)
     discover_tools
     ;;
   install)
     "$ROOT_DIR/install.sh"
+    ;;
+  install-all)
+    install_all_tools
     ;;
   uninstall)
     "$ROOT_DIR/uninstall.sh"
@@ -18,8 +33,14 @@ case "${1:-list}" in
     [[ -n "${2:-}" ]] || die "Usage: ./tools run <tool-name>"
     run_tool "$2"
     ;;
+  link)
+    link_tools_cli "$ROOT_DIR"
+    ;;
+  unlink)
+    unlink_tools_cli
+    ;;
   *)
-    echo "Usage: ./tools {list|install|uninstall|run <tool-name>}"
+    echo "Usage: ./tools {list|list-all|install|install-all|uninstall|run <tool-name>|link|unlink}"
     exit 1
     ;;
 esac

@@ -1,3 +1,6 @@
+init:
+	./tools link
+
 run:
 	./tools list
 

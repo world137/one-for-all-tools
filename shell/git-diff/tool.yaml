@@ -1,0 +1,5 @@
+name: git-diff
+type: shell
+description: Example shell tool
+version: 1.0.0
+command: git-diff
