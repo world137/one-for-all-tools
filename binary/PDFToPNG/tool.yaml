@@ -1,0 +1,5 @@
+name: PDFToPNG
+type: go
+description: Convert PDF pages to PNG images (wraps poppler's pdftoppm)
+version: 1.0.0
+command: pdftopng

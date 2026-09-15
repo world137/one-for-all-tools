@@ -22,6 +22,7 @@ The repository automatically discovers tools from:
 
 ```text
 shell/
+binary/
 extension/
 web/
 ```
@@ -152,6 +153,14 @@ dev-tools/
 │       ├── README.md           # optional
 │       └── ...
 │
+├── binary/
+│   └── <tool-name>/
+│       ├── tool.yaml
+│       ├── install.sh
+│       ├── uninstall.sh
+│       ├── README.md           # optional
+│       └── ...                 # source for a compiled language, e.g. Go
+│
 ├── extension/
 │   └── <tool-name>/
 │       ├── tool.yaml
@@ -203,6 +212,30 @@ Example:
 ```bash
 sort-files
 ```
+
+---
+
+## `binary/`
+
+Contains tools written in a compiled language (e.g. Go) that must be built
+before they can be installed.
+
+Example:
+
+```text
+binary/
+└── PDFToPNG/
+```
+
+Unlike `shell/`, a `binary/` tool's `install.sh` runs a build step (e.g.
+`go build`) and installs the resulting compiled binary into:
+
+```text
+/usr/local/bin/
+```
+
+`tool.yaml` for a `binary/` tool uses `type: go` (or another compiled
+language, as needed).
 
 ---
 
@@ -281,7 +314,13 @@ Allowed `type` values:
 shell
 extension
 web
+go
 ```
+
+A `go` tool lives under `binary/<tool-name>/` (see §4.1) — its `install.sh`
+compiles a Go source tree (`go build`) before installing the resulting
+binary into `/usr/local/bin`, rather than installing a plain script
+directly.
 
 Additional metadata can be added when necessary.
 
@@ -450,6 +489,7 @@ install.sh
 uninstall.sh
 lib/
 shell/
+binary/
 extension/
 web/
 ```

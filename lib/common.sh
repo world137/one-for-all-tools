@@ -15,7 +15,7 @@ yaml_value() {
 }
 
 find_tool_dirs() {
-  find "$ROOT_DIR/shell" "$ROOT_DIR/extension" "$ROOT_DIR/web" \
+  find "$ROOT_DIR/shell" "$ROOT_DIR/extension" "$ROOT_DIR/web" "$ROOT_DIR/binary" \
     -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort
 }
 

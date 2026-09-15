@@ -10,6 +10,7 @@ dev-tools/
 ├── install.sh
 ├── uninstall.sh
 ├── shell/
+├── binary/
 ├── extension/
 ├── web/
 └── lib/
@@ -39,6 +40,7 @@ Other commands:
 Create a directory under one of:
 
 - `shell/`
+- `binary/`
 - `extension/`
 - `web/`
 
