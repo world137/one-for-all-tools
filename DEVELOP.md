@@ -255,10 +255,11 @@ extension/
 Installation should normally use:
 
 ```bash
-code --install-extension <extension-id>
+code --install-extension <extension.vsix>
 ```
 
-The tool should verify that the `code` command is available.
+Place exactly one `.vsix` package in the extension directory. The tool should verify
+that the `code` command is available before installing that package.
 
 ---
 
@@ -659,10 +660,10 @@ version: 1.0.0
 extension_id: publisher.my-extension
 ```
 
-Installation:
+Place the built package in `extension/my-extension/` and install it with:
 
 ```bash
-code --install-extension publisher.my-extension
+code --install-extension extension/my-extension/my-extension.vsix
 ```
 
 Uninstallation:
